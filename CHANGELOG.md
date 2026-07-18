@@ -2,6 +2,21 @@
 
 _Note: This project follows [Semantic Versioning]._
 
+## [1.9.0] - 2026-07-18
+
+**New features**
+
+- Add zsh-patina to [homebrew-core] 🎉🥳
+
+**Bug fixes**
+
+- Use file lock to prevent race condition when starting the daemon. This prevents multiple daemons from being started at the same time.
+
+**Maintenance**
+
+- Update dependencies
+- Raise MSRV to 1.89
+
 ## [1.8.0] - 2026-06-14
 
 **New features**
@@ -187,6 +202,7 @@ _Note: This project follows [Semantic Versioning]._
 
 _First release._
 
+[1.9.0]: https://github.com/michel-kraemer/zsh-patina/releases/tag/1.9.0
 [1.8.0]: https://github.com/michel-kraemer/zsh-patina/releases/tag/1.8.0
 [1.7.0]: https://github.com/michel-kraemer/zsh-patina/releases/tag/1.7.0
 [1.6.0]: https://github.com/michel-kraemer/zsh-patina/releases/tag/1.6.0
@@ -204,6 +220,7 @@ _First release._
 [custom precommands]: https://github.com/michel-kraemer/zsh-patina#custom-precommands
 [Cygwin]: https://cygwin.com/
 [fsh-default-theme]: https://github.com/zdharma-continuum/fast-syntax-highlighting/blob/master/themes/default.ini
+[homebrew-core]: https://github.com/Homebrew/homebrew-core
 [MSYS2]: https://www.msys2.org/
 [Nord]: https://www.nordtheme.com/
 [Semantic Versioning]: https://semver.org/
