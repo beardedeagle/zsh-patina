@@ -118,111 +118,114 @@ _zsh_patina() {
     fi
     local fd=$REPLY
 
-    if [[ -z "$_ZSH_PATINA_ENCODED_PWD" ]]; then
-        # Lazily set _ZSH_PATINA_ENCODED_PWD if it's empty. Doing this here
-        # rather than right at activation, makes sure we get the actual
-        # directory the user has started in and not the one from which
-        # `zsh-patina activate` was called.
-        _zsh_patina_encode_string "$PWD"
-        _ZSH_PATINA_ENCODED_PWD=$REPLY
-    fi
-
     {
-        # build header
-        local lns=$(( $pre_count + $count ))
-        local header="VER=<{version}>"$'\n'"COL=$COLUMNS"$'\n'"ROW=$LINES"$'\n'"CUR=$CURSOR"$'\n'"PRL=$pre_count"$'\n'"LNS=$lns"$'\n'"PWD=$_ZSH_PATINA_ENCODED_PWD"$'\n'
-
-        if (( $+REGION_ACTIVE )) && (( REGION_ACTIVE != 0 )); then
-            _zsh_patina_encode_string "${${zle_highlight[(r)region:*]-}#*:}"
-            header="${header}RGA=1"$'\n'"RGE=$MARK"$'\n'"RGH=$REPLY"$'\n'
-        fi
-        if (( $+SUFFIX_ACTIVE )) && (( SUFFIX_ACTIVE != 0 )); then
-            _zsh_patina_encode_string "${${zle_highlight[(r)suffix:*]-}#*:}"
-            header="${header}SFA=1"$'\n'"SFS=$SUFFIX_START"$'\n'"SFE=$SUFFIX_END"$'\n'"SFH=$REPLY"$'\n'
-        fi
-        if (( $+ISEARCHMATCH_ACTIVE )) && (( ISEARCHMATCH_ACTIVE != 0 )); then
-            _zsh_patina_encode_string "${${zle_highlight[(r)isearch:*]-}#*:}"
-            header="${header}ISA=1"$'\n'"ISS=$ISEARCHMATCH_START"$'\n'"ISE=$ISEARCHMATCH_END"$'\n'"ISH=$REPLY"$'\n'
-        fi
-        if (( $+YANK_ACTIVE )) && (( YANK_ACTIVE != 0 )); then
-            _zsh_patina_encode_string "${${zle_highlight[(r)paste:*]-}#*:}"
-            header="${header}YKA=1"$'\n'"YKS=$YANK_START"$'\n'"YKE=$YANK_END"$'\n'"YKH=$REPLY"$'\n'
+        if [[ -z "$_ZSH_PATINA_ENCODED_PWD" ]]; then
+            # Lazily set _ZSH_PATINA_ENCODED_PWD if it's empty. Doing this here
+            # rather than right at activation, makes sure we get the actual
+            # directory the user has started in and not the one from which
+            # `zsh-patina activate` was called.
+            _zsh_patina_encode_string "$PWD"
+            _ZSH_PATINA_ENCODED_PWD=$REPLY
         fi
 
-        if [[ -o autocd ]]; then
-            header="${header}ACD=1"$'\n'
-        fi
-        if [[ ! -o banghist ]]; then
-            header="${header}BNG=0"$'\n'
-        fi
+        {
+            # build header
+            local lns=$(( $pre_count + $count ))
+            local header="VER=<{version}>"$'\n'"COL=$COLUMNS"$'\n'"ROW=$LINES"$'\n'"CUR=$CURSOR"$'\n'"PRL=$pre_count"$'\n'"LNS=$lns"$'\n'"PWD=$_ZSH_PATINA_ENCODED_PWD"$'\n'
 
-        # send header
-        print -r -- "$header"
-
-        # send pre-buffer lines
-        if (( pre_count != 0 )); then
-            print -r -- "$trimmed_prebuffer"
-        fi
-
-        # send lines
-        if (( count != 0 )); then
-            print -r -- "$BUFFER"
-        fi
-    } >&"$fd" || {
-        print -u2 "zsh-patina: Write to socket failed"
-        exec {fd}>&-
-        return
-    }
-
-    # Must be declared here because we reuse them in the while loop. Otherwise,
-    # their contents will be printed in the second loop iteration (strange Zsh
-    # behaviour). As a matter of fact, declaring all variables outside the while
-    # loop (outside the hot path), slightly increases performance.
-    local query_cmd query_lns query_las qline qi
-
-    local new_regions=("${region_highlight[@]}") # preserve existing highlighting
-    local line
-    while IFS= read -r -u "$fd" line; do
-        [[ -z "$line" ]] && continue
-
-        if [[ "$line" == "?"* ]]; then
-            # query block: read header fields until blank line
-            query_cmd="${line#?CMD=}"
-            query_lns=0
-            query_las=1
-            while IFS= read -r -u "$fd" qline; do
-                [[ -z "$qline" ]] && break
-                if [[ "$qline" == "LNS="* ]]; then
-                    query_lns="${qline#LNS=}"
-                elif [[ "$qline" == "LAS="* ]]; then
-                    query_las="${qline#LAS=}"
-                fi
-            done
-
-            if [[ "$query_cmd" == "CAL" ]]; then
-                for (( qi = 0; qi < query_lns; qi++ )); do
-                    IFS= read -r -u "$fd" qline
-                    _zsh_patina_decode_string "$qline"
-                    _zsh_patina_resolve_callable "$REPLY" "$query_las"
-                    print -r -u "$fd" -- "$REPLY"
-                done
-            else
-                # unknown query type: drain body lines to keep socket in sync
-                for (( qi = 0; qi < query_lns; qi++ )); do
-                    IFS= read -r -u "$fd" qline
-                done
+            if (( $+REGION_ACTIVE )) && (( REGION_ACTIVE != 0 )); then
+                _zsh_patina_encode_string "${${zle_highlight[(r)region:*]-}#*:}"
+                header="${header}RGA=1"$'\n'"RGE=$MARK"$'\n'"RGH=$REPLY"$'\n'
             fi
-        else
-            new_regions+=("$line memo=zsh_patina")
-        fi
-    done
+            if (( $+SUFFIX_ACTIVE )) && (( SUFFIX_ACTIVE != 0 )); then
+                _zsh_patina_encode_string "${${zle_highlight[(r)suffix:*]-}#*:}"
+                header="${header}SFA=1"$'\n'"SFS=$SUFFIX_START"$'\n'"SFE=$SUFFIX_END"$'\n'"SFH=$REPLY"$'\n'
+            fi
+            if (( $+ISEARCHMATCH_ACTIVE )) && (( ISEARCHMATCH_ACTIVE != 0 )); then
+                _zsh_patina_encode_string "${${zle_highlight[(r)isearch:*]-}#*:}"
+                header="${header}ISA=1"$'\n'"ISS=$ISEARCHMATCH_START"$'\n'"ISE=$ISEARCHMATCH_END"$'\n'"ISH=$REPLY"$'\n'
+            fi
+            if (( $+YANK_ACTIVE )) && (( YANK_ACTIVE != 0 )); then
+                _zsh_patina_encode_string "${${zle_highlight[(r)paste:*]-}#*:}"
+                header="${header}YKA=1"$'\n'"YKS=$YANK_START"$'\n'"YKE=$YANK_END"$'\n'"YKH=$REPLY"$'\n'
+            fi
 
-    # performance: set region_highlight once at the end rather than updating it
-    # for every region
-    region_highlight=("${new_regions[@]}")
+            if [[ -o autocd ]]; then
+                header="${header}ACD=1"$'\n'
+            fi
+            if [[ ! -o banghist ]]; then
+                header="${header}BNG=0"$'\n'
+            fi
 
-    # close socket connection
-    exec {fd}>&-
+            # send header
+            print -r -- "$header"
+
+            # send pre-buffer lines
+            if (( pre_count != 0 )); then
+                print -r -- "$trimmed_prebuffer"
+            fi
+
+            # send lines
+            if (( count != 0 )); then
+                print -r -- "$BUFFER"
+            fi
+        } >&"$fd" || {
+            print -u2 "zsh-patina: Write to socket failed"
+            return
+        }
+
+        # Must be declared here because we reuse them in the while loop.
+        # Otherwise, their contents will be printed in the second loop iteration
+        # (strange Zsh behaviour). As a matter of fact, declaring all variables
+        # outside the while loop (outside the hot path), slightly increases
+        # performance.
+        local query_cmd query_lns query_las qline qi
+
+        local new_regions=("${region_highlight[@]}") # preserve existing highlighting
+        local line
+        while IFS= read -r -u "$fd" line; do
+            [[ -z "$line" ]] && continue
+
+            if [[ "$line" == "?"* ]]; then
+                # query block: read header fields until blank line
+                query_cmd="${line#?CMD=}"
+                query_lns=0
+                query_las=1
+                while IFS= read -r -u "$fd" qline; do
+                    [[ -z "$qline" ]] && break
+                    if [[ "$qline" == "LNS="* ]]; then
+                        query_lns="${qline#LNS=}"
+                    elif [[ "$qline" == "LAS="* ]]; then
+                        query_las="${qline#LAS=}"
+                    fi
+                done
+
+                if [[ "$query_cmd" == "CAL" ]]; then
+                    for (( qi = 0; qi < query_lns; qi++ )); do
+                        IFS= read -r -u "$fd" qline
+                        _zsh_patina_decode_string "$qline"
+                        _zsh_patina_resolve_callable "$REPLY" "$query_las"
+                        print -r -u "$fd" -- "$REPLY"
+                    done
+                else
+                    # unknown query type: drain body lines to keep socket in
+                    # sync
+                    for (( qi = 0; qi < query_lns; qi++ )); do
+                        IFS= read -r -u "$fd" qline
+                    done
+                fi
+            else
+                new_regions+=("$line memo=zsh_patina")
+            fi
+        done
+
+        # performance: set region_highlight once at the end rather than updating
+        # it for every region
+        region_highlight=("${new_regions[@]}")
+    } always {
+        # close socket connection
+        exec {fd}>&-
+    }
 
     # end=$EPOCHREALTIME
     # elapsed_ms=$(( (end - start) * 1000 ))
