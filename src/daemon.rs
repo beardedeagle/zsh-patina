@@ -1407,8 +1407,16 @@ fn start_daemon_internal(
 
         // from here on, we are a true background daemon ...
 
-        // close all file descriptors so we're really decoupled from the parent
-        // process
+        // Close all file descriptors so we're really decoupled from the parent
+        // process. Keep the lock file open!
+        // SAFETY: there is only one thread so far, so `close_open_fds` is safe
+        // to call.
+        unsafe {
+            close_fds::close_open_fds(3, &[lock_file.as_raw_fd()]);
+        }
+
+        // Redirect stdin, stdout, stderr to /dev/null to further decouple from
+        // the parent.
         // SAFETY: `devnull` was just successfully opened so its fd is valid.
         // stdin/stdout/stderr are valid target fds by definition. `devnull` is
         // dropped after this block; the dup'd fds are independent copies so
